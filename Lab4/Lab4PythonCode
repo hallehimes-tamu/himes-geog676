@@ -1,0 +1,61 @@
+import arcpy
+import os
+
+# Set workspace
+arcpy.env.workspace = r'C:\Program Files\ArcGIS\Pro\bin\Python\envs'
+
+# Define paths and names
+folder_path = r'C:\himes-geog676\Lab4'
+gdb_name = 'Test.gdb'
+gdb_path = folder_path + '\\' + gdb_name
+
+# Check if geodatabase already exists
+if not arcpy.Exists(gdb_path):
+    # Create File Geodatabase
+    arcpy.CreateFileGDB_management(folder_path, gdb_name)
+    print(f"Geodatabase created at: {gdb_path}")
+else:
+    print(f"Geodatabase already exists at: {gdb_path}")
+
+# Define CSV path and parameters for the point feature class
+csv_path = r'C:\himes-geog676\Lab4\garage_locations.csv'
+garage_layer_name = 'Garage_points'
+x_field = 'X'
+y_field = 'Y'
+garage_points = gdb_path + '\\' + garage_layer_name
+
+# Check if Garage_points feature class already exists
+if arcpy.Exists(garage_points):
+    arcpy.Delete_management(garage_points)
+    print(f"Existing feature class deleted: {garage_points}")
+
+# Convert CSV to Point Feature Class
+arcpy.management.XYTableToPoint(csv_path, garage_points, x_field, y_field)
+print(f"Feature class created at: {garage_points}")
+
+# Define path to the existing Structures feature class in Test.gdb
+structures_path = gdb_path + '\\' + 'Structures'
+
+# Define paths for buffering
+buffer_output = gdb_path + '\\' + 'Garage_Buffer'
+
+# Get buffer distance from user input
+buffer_distance = input("Enter the buffer distance in meters: ")
+
+# Buffer the garages
+arcpy.Buffer_analysis(garage_points, buffer_output, buffer_distance + " Meters")
+print(f"Buffer created at: {buffer_output}")
+
+# Define path for the intersection output
+intersection_output = gdb_path + '\\' + 'Garage_Structures_Intersection'
+
+# Perform intersection between garage buffer and structures
+arcpy.Intersect_analysis([buffer_output, structures_path], intersection_output)
+print(f"Intersection created at: {intersection_output}")
+
+# Define path for the output CSV
+intersection_csv_path = folder_path + '\\' + 'Garage_Structures_Intersection.csv'
+
+# Export the intersection attribute table to a CSV file
+arcpy.TableToTable_conversion(intersection_output, folder_path, 'Garage_Structures_Intersection.csv')
+print(f"Intersection attribute table exported to: {intersection_csv_path}")
